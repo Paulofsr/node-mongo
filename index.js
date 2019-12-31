@@ -1,5 +1,6 @@
 const MongoClient = require('mongodb').MongoClient;
 const assert = require('assert');
+const dbOperations = require('./operations');
 
 const url = 'mongodb://localhost:27017/';
 const dbname = 'conFusion';
@@ -11,28 +12,38 @@ MongoClient.connect(url, (err, client) => {
     console.log('Connected correctly to server');
 
     const db = client.db(dbname);
-    const collection = db.collection("dishes");
-    collection.insertOne(
-        {"name": "Plate", "description": "My plate"},
-        (err, result) => {
-            assert.equal(err,null);
+    const dishesCollection = "dishes";
 
-            console.log("After Insert:\n");
-            console.log(result.ops);
+    dbOperations.insertDocument(db, { name: "Vadonut", description: "Test"}, dishesCollection,
+        (result) => {
+            console.log("Insert Document:\n", result.ops);
 
-            collection.find({}).toArray((err, docs) => {
-                assert.equal(err,null);
-                
-                console.log("Found:\n");
-                console.log(docs);
+            dbOperations.findDocuments(db, dishesCollection, 
+                (docs) => {
+                    console.log("Found Documents:\n", docs);
 
-                db.dropCollection("dishes", (err, result) => {
-                    assert.equal(err,null);
+                    dbOperations.updateDocument(db, { name: "Vadonut" },
+                        { description: "Updated Test" }, dishesCollection,
+                        (result) => {
+                            console.log("Updated Document:\n", result.result);
 
-                    client.close();
-                });
-            });
+                            dbOperations.findDocuments(db, dishesCollection, 
+                                (docs) => {
+                                    console.log("Found Updated Documents:\n", docs);
+                                    
+                                    db.dropCollection(dishesCollection, 
+                                        (result) => {
+                                            console.log("Dropped Collection: ", result);
+
+                                            client.close();
+                                        }
+                                    );
+                                }
+                            );
+                        }
+                    );
+                }
+            );
         }
     );
-
 });
