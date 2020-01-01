@@ -5,45 +5,41 @@ const dbOperations = require('./operations');
 const url = 'mongodb://localhost:27017/';
 const dbname = 'conFusion';
 
-MongoClient.connect(url, (err, client) => {
-
-    assert.equal(err,null);
+MongoClient.connect(url).then((client) => {
 
     console.log('Connected correctly to server');
-
     const db = client.db(dbname);
-    const dishesCollection = "dishes";
+    const collection = "dishes";
 
-    dbOperations.insertDocument(db, { name: "Vadonut", description: "Test"}, dishesCollection,
-        (result) => {
+    dbOperations.insertDocument(db, { name: "Vadonut", description: "Test"}, collection)
+        .then((result) => {
             console.log("Insert Document:\n", result.ops);
 
-            dbOperations.findDocuments(db, dishesCollection, 
-                (docs) => {
-                    console.log("Found Documents:\n", docs);
+            return dbOperations.findDocuments(db, collection);
+        })
+        .then((docs) => {
+            console.log("Found Documents:\n", docs);
 
-                    dbOperations.updateDocument(db, { name: "Vadonut" },
-                        { description: "Updated Test" }, dishesCollection,
-                        (result) => {
-                            console.log("Updated Document:\n", result.result);
+            return dbOperations.updateDocument(db, { name: "Vadonut" },
+                    { description: "Updated Test" }, collection);
 
-                            dbOperations.findDocuments(db, dishesCollection, 
-                                (docs) => {
-                                    console.log("Found Updated Documents:\n", docs);
-                                    
-                                    db.dropCollection(dishesCollection, 
-                                        (result) => {
-                                            console.log("Dropped Collection: ", result);
+        })
+        .then((result) => {
+            console.log("Updated Document:\n", result.result);
 
-                                            client.close();
-                                        }
-                                    );
-                                }
-                            );
-                        }
-                    );
-                }
-            );
-        }
-    );
-});
+            return dbOperations.findDocuments(db, collection);
+        })
+        .then((docs) => {
+            console.log("Found Updated Documents:\n", docs);
+                            
+            return db.dropCollection(collection);
+        })
+        .then((result) => {
+            console.log("Dropped Collection: ", result);
+
+            return client.close();
+        })
+        .catch((err) => console.log(err));
+
+})
+.catch((err) => console.log(err));
